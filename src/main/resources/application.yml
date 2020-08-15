@@ -1,0 +1,28 @@
+server:
+  port: 9401
+  servlet:
+    context-path: /api/v1/
+
+spring:
+  profiles:
+    active: local
+
+  jpa:
+    database: mysql
+    properties:
+      hibernate:
+        hibernate: true
+    hibernate:
+      ddl-auto: update
+      #ddl-auto:update validate
+    show-sql: true
+
+
+
+# 简历附件上传格式校验
+validity:
+  attach:
+    ext:
+      allowed: "key,numbers,pages,xls"
+    mime:
+      allowed: "image/jpeg,image/png,pdf,text/plain,video/mp4,zip,x-rar-compressed,vnd.apple,vnd.openxmlformats,vnd.ms-powerpoint,vnd.ms-excel,msword,wps-writer,x-rar"

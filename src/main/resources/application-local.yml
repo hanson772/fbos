@@ -1,0 +1,14 @@
+spring:
+  profiles: local
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/fbos?serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8&useSSL=true
+    username: root
+    password: mysql
+
+  servlet:
+    multipart:
+      file-size-threshold: 0
+      location: /Users/Shared/temp
+      max-file-size: 30MB
+      max-request-size: 30MB
