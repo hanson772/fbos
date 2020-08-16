@@ -4,17 +4,17 @@ import com.wms.bean.enums.EProperty;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.DESKeySpec;
+import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author max.chen
@@ -140,6 +140,9 @@ public class Tools {
     public static Date timeToDate(long time){
         return new Date(time < 10000000000L ? time * 1000L : time);
     }
+    public static String formatDate(String format, Date dt){
+        return new SimpleDateFormat(format).format(dt);
+    }
 
 
 
@@ -168,8 +171,57 @@ public class Tools {
     /**
      * 校验对象的某些字段是否为空
      * @param obj
-     * @param fields
+     * @param props
      */
-    public static void checkFieldsIsBlank(Object obj, String... fields){
+    public static Map<String, Object> checkFieldsIsBlank(Object obj, String... props){
+        Map<String, Object> map = new HashMap<String, Object>();
+        // 校验对象为空，跑出异常
+        if(obj == null){
+            Assert.isTrue(false, "当前对象为空");
+        }
+        // 校验字段列表为空，返回空Map
+        if(props == null || props.length == 0){
+            return map;
+        }
+        // props转list
+        List<String> checkList = Arrays.asList(props);
+        // 获取f对象对应类中的所有属性域
+        Class clazz = obj.getClass();
+        List<Field> fieldList = new ArrayList<>();
+        while (clazz != null) {
+            fieldList.addAll(new ArrayList<>(Arrays.asList(clazz.getDeclaredFields())));
+            clazz = clazz.getSuperclass();
+        }
+        Field[] fields = new Field[fieldList.size()];
+        fieldList.toArray(fields);
+        for (int i = 0, len = fields.length; i < len; i++) {
+            String varName = fields[i].getName();
+            varName = varName.toLowerCase();//将key置为小写，默认为对象的属性
+            // 当前Field需要校验
+            if(checkList.contains(varName)) {
+                try {
+                    // 获取原来的访问控制权限
+                    boolean accessFlag = fields[i].isAccessible();
+                    // 修改访问控制权限
+                    fields[i].setAccessible(true);
+                    // 获取在对象f中属性fields[i]对应的对象中的变量
+                    Object o = fields[i].get(obj);
+                    if (o == null) {
+                        String desc = varName;
+                        // 获取字段属性的描述
+                        //desc = fields[i];
+                        map.put(varName, desc);
+                    }
+                    // 恢复访问控制权限
+                    fields[i].setAccessible(accessFlag);
+                } catch (IllegalArgumentException ex) {
+                    ex.printStackTrace();
+                } catch (IllegalAccessException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }
+        return map;
     }
+
 }

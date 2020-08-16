@@ -27,7 +27,7 @@ public class CaseService implements ICaseService {
     @Override
     public void saveCase(CaseRequest request){
         // 校验字段是否为空
-        Tools.checkFieldsIsBlank(request, "number", "display", "byOrg", "byDept");
+        Tools.checkFieldsIsBlank(request, "number", "name", "byOrg", "byDept");
         /**
          * 校验是否案件编号重复
          */
@@ -36,7 +36,7 @@ public class CaseService implements ICaseService {
 
         caseDO = CaseDO.builder()
                 .number(request.getNumber())
-                .display(request.getDisplay())
+                .name(request.getName())
                 .byOrg(request.getByOrg())
                 .byDept(request.getByDept())
                 .type(request.getType())

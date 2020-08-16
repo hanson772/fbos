@@ -30,7 +30,7 @@ public class CaseDO extends AuditingDO{
     private String number;
 
     @Column(name = "case_name", columnDefinition = "nvarchar(200) NOT NULL COMMENT '案件名称'")
-    private String display;
+    private String name;
 
     @Column(name = "operate_by_org", columnDefinition = "nvarchar(200) NOT NULL COMMENT '办案单位'")
     private String byOrg;
