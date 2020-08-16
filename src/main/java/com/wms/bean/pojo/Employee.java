@@ -28,8 +28,6 @@ public class Employee {
     String dept;
     @ApiModelProperty(value = "用户职位", notes = "4A账户返回用户职位")
     String job;
-    @ApiModelProperty(value = "用户邮箱", notes = "4A账户返回用户邮箱")
-    String email;
     @ApiModelProperty(value = "用户角色", notes = "4A账户返回用户权限角色")
     ERole[] roles;
 
