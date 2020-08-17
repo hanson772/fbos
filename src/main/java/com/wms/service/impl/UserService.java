@@ -3,7 +3,6 @@ package com.wms.service.impl;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.wms.bean.enums.ERole;
-import com.wms.bean.enums.Easy;
 import com.wms.bean.pojo.Employee;
 import com.wms.config.CacheConfig;
 import com.wms.service.IUserService;
@@ -15,7 +14,6 @@ import koal.sgpmi.client.ws.util.EmptyUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -138,10 +136,13 @@ public class UserService implements IUserService {
             Map<String, Object> query = new HashMap<>();
             query.put("ticket", ticket);
             query.put("service", weburl);
+            query.put("format", "json");
             String response = OkHttpRequestUtils.doGet(ssoUrl + "/p3/serviceValidate", query);
             JSONObject json = JSONObject.parseObject(response);
-            if (json != null && json.containsKey("user")) {
-                String user = json.getString("user");
+            if (json != null) {
+                String user = json.getJSONObject("serviceResponse")
+                        .getJSONObject("authenticationSuccess")
+                        .getString("user");
                 String[] userstr = user.split(" ");
                 // 返回一个Easy对象，key是用户姓名，value是用户code（身份证）
                 Assert.isTrue(userstr.length > 0, "登录失败，没有证件号");
