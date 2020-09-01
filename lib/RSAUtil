@@ -1,0 +1,524 @@
+package com.tencent.wework;
+/*
+ * work_wx
+ * wuhen 2020/1/16.
+ * Copyright (c) 2020  jianfengwuhen@126.com All Rights Reserved.
+ */
+import org.apache.commons.codec.binary.Base64;
+
+import javax.crypto.Cipher;
+import java.security.*;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * RSA加密和解密工具
+ *
+ * @Author: syj
+ * @CreateDate: 2018/7/20 16:52
+ */
+public class RSAUtil {
+    /**
+     * 数字签名，密钥算法
+     */
+    private static final String RSA_KEY_ALGORITHM = "RSA";
+
+    /**
+     * 数字签名签名/验证算法
+     */
+    private static final String SIGNATURE_ALGORITHM = "MD5withRSA";
+
+    /**
+     * RSA密钥长度，RSA算法的默认密钥长度是1024密钥长度必须是64的倍数，在512到65536位之间
+     */
+    private static final int KEY_SIZE = 1024;
+
+    /**
+     * 生成密钥对
+     */
+    private static Map<String, String> initKey() throws Exception {
+        KeyPairGenerator keygen = KeyPairGenerator.getInstance(RSA_KEY_ALGORITHM);
+        SecureRandom secrand = new SecureRandom();
+        /**
+         * 初始化随机产生器
+         */
+        secrand.setSeed("initSeed".getBytes());
+        /**
+         * 初始化密钥生成器
+         */
+        keygen.initialize(KEY_SIZE, secrand);
+        KeyPair keys = keygen.genKeyPair();
+
+        byte[] pub_key = keys.getPublic().getEncoded();
+        String publicKeyString = Base64.encodeBase64String(pub_key);
+
+        byte[] pri_key = keys.getPrivate().getEncoded();
+        String privateKeyString = Base64.encodeBase64String(pri_key);
+
+        Map<String, String> keyPairMap = new HashMap<>();
+        keyPairMap.put("publicKeyString", publicKeyString);
+        keyPairMap.put("privateKeyString", privateKeyString);
+
+        return keyPairMap;
+    }
+
+    /**
+     * 密钥转成字符串
+     *
+     * @param key
+     * @return
+     */
+    public static String encodeBase64String(byte[] key) {
+        return Base64.encodeBase64String(key);
+    }
+
+    /**
+     * 密钥转成byte[]
+     *
+     * @param key
+     * @return
+     */
+    public static byte[] decodeBase64(String key) {
+        return Base64.decodeBase64(key);
+    }
+
+    /**
+     * 公钥加密
+     *
+     * @param data      加密前的字符串
+     * @param publicKey 公钥
+     * @return 加密后的字符串
+     * @throws Exception
+     */
+    public static String encryptByPubKey(String data, String publicKey) throws Exception {
+        byte[] pubKey = RSAUtil.decodeBase64(publicKey);
+        byte[] enSign = encryptByPubKey(data.getBytes(), pubKey);
+        return Base64.encodeBase64String(enSign);
+    }
+
+    /**
+     * 公钥加密
+     *
+     * @param data   待加密数据
+     * @param pubKey 公钥
+     * @return
+     * @throws Exception
+     */
+    public static byte[] encryptByPubKey(byte[] data, byte[] pubKey) throws Exception {
+        X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(pubKey);
+        KeyFactory keyFactory = KeyFactory.getInstance(RSA_KEY_ALGORITHM);
+        PublicKey publicKey = keyFactory.generatePublic(x509KeySpec);
+        Cipher cipher = Cipher.getInstance(keyFactory.getAlgorithm());
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+        return cipher.doFinal(data);
+    }
+
+    /**
+     * 私钥加密
+     *
+     * @param data       加密前的字符串
+     * @param privateKey 私钥
+     * @return 加密后的字符串
+     * @throws Exception
+     */
+    public static String encryptByPriKey(String data, String privateKey) throws Exception {
+        byte[] priKey = RSAUtil.decodeBase64(privateKey);
+        byte[] enSign = encryptByPriKey(data.getBytes(), priKey);
+        return Base64.encodeBase64String(enSign);
+    }
+
+    /**
+     * 私钥加密
+     *
+     * @param data   待加密的数据
+     * @param priKey 私钥
+     * @return 加密后的数据
+     * @throws Exception
+     */
+    public static byte[] encryptByPriKey(byte[] data, byte[] priKey) throws Exception {
+        PKCS8EncodedKeySpec pkcs8KeySpec = new PKCS8EncodedKeySpec(priKey);
+        KeyFactory keyFactory = KeyFactory.getInstance(RSA_KEY_ALGORITHM);
+        PrivateKey privateKey = keyFactory.generatePrivate(pkcs8KeySpec);
+        Cipher cipher = Cipher.getInstance(keyFactory.getAlgorithm());
+        cipher.init(Cipher.ENCRYPT_MODE, privateKey);
+        return cipher.doFinal(data);
+    }
+
+    /**
+     * 公钥解密
+     *
+     * @param data   待解密的数据
+     * @param pubKey 公钥
+     * @return 解密后的数据
+     * @throws Exception
+     */
+    public static byte[] decryptByPubKey(byte[] data, byte[] pubKey) throws Exception {
+        X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(pubKey);
+        KeyFactory keyFactory = KeyFactory.getInstance(RSA_KEY_ALGORITHM);
+        PublicKey publicKey = keyFactory.generatePublic(x509KeySpec);
+        Cipher cipher = Cipher.getInstance(keyFactory.getAlgorithm());
+        cipher.init(Cipher.DECRYPT_MODE, publicKey);
+        return cipher.doFinal(data);
+    }
+
+    /**
+     * 公钥解密
+     *
+     * @param data      解密前的字符串
+     * @param publicKey 公钥
+     * @return 解密后的字符串
+     * @throws Exception
+     */
+    public static String decryptByPubKey(String data, String publicKey) throws Exception {
+        byte[] pubKey = RSAUtil.decodeBase64(publicKey);
+        byte[] design = decryptByPubKey(Base64.decodeBase64(data), pubKey);
+        return new String(design);
+    }
+
+    /**
+     * 私钥解密
+     *
+     * @param data   待解密的数据
+     * @param priKey 私钥
+     * @return
+     * @throws Exception
+     */
+    public static byte[] decryptByPriKey(byte[] data, byte[] priKey) throws Exception {
+        PKCS8EncodedKeySpec pkcs8KeySpec = new PKCS8EncodedKeySpec(priKey);
+        KeyFactory keyFactory = KeyFactory.getInstance(RSA_KEY_ALGORITHM);
+        PrivateKey privateKey = keyFactory.generatePrivate(pkcs8KeySpec);
+        Cipher cipher = Cipher.getInstance(keyFactory.getAlgorithm());
+        cipher.init(Cipher.DECRYPT_MODE, privateKey);
+        return cipher.doFinal(data);
+    }
+
+
+    /**
+     * 私钥解密
+     *
+     * @param data       解密前的字符串
+     * @param privateKey 私钥
+     * @return 解密后的字符串
+     * @throws Exception
+     */
+    public static String decryptByPriKey(String data, String privateKey) throws Exception {
+        byte[] priKey = RSAUtil.decodeBase64(privateKey);
+        byte[] design = decryptByPriKey(Base64.decodeBase64(data), priKey);
+        return new String(design);
+    }
+
+    /**
+     * RSA签名
+     *
+     * @param data   待签名数据
+     * @param priKey 私钥
+     * @return 签名
+     * @throws Exception
+     */
+    public static String sign(byte[] data, byte[] priKey) throws Exception {
+        // 取得私钥
+        PKCS8EncodedKeySpec pkcs8KeySpec = new PKCS8EncodedKeySpec(priKey);
+        KeyFactory keyFactory = KeyFactory.getInstance(RSA_KEY_ALGORITHM);
+        // 生成私钥
+        PrivateKey privateKey = keyFactory.generatePrivate(pkcs8KeySpec);
+        // 实例化Signature
+        Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
+        // 初始化Signature
+        signature.initSign(privateKey);
+        // 更新
+        signature.update(data);
+        return Base64.encodeBase64String(signature.sign());
+    }
+
+    /**
+     * RSA校验数字签名
+     *
+     * @param data   待校验数据
+     * @param sign   数字签名
+     * @param pubKey 公钥
+     * @return boolean 校验成功返回true，失败返回false
+     */
+    public boolean verify(byte[] data, byte[] sign, byte[] pubKey) throws Exception {
+        // 实例化密钥工厂
+        KeyFactory keyFactory = KeyFactory.getInstance(RSA_KEY_ALGORITHM);
+        // 初始化公钥
+        X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(pubKey);
+        // 产生公钥
+        PublicKey publicKey = keyFactory.generatePublic(x509KeySpec);
+        // 实例化Signature
+        Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
+        // 初始化Signature
+        signature.initVerify(publicKey);
+        // 更新
+        signature.update(data);
+        // 验证
+        return signature.verify(sign);
+    }
+
+}
+
+
+
+
+public class AuditBackUtil {
+    private static long sdk = 0;
+    private static long timeout = 10 * 60 * 1000;
+
+    private static void initSDK (WxConfig config) {
+        if (sdk == 0) {
+            sdk = Finance.NewSdk();
+            Finance.Init(sdk,config.getCorpId(),config.getSecret());
+        }
+    }
+
+    public static void main(String[] args) {
+        pullChat(new WxConfig(), 260, 200);
+    }
+
+    /*
+
+    /**
+     * @todo
+     * @author wuhen
+     * @param seq :
+     * @param limit :
+     * @returns boolean
+     * @throws
+     * @date 2020/1/24 18:25
+     */
+    public static boolean pullChat(WxConfig config, long seq, long limit) {
+        initSDK(config);
+        JSONArray result = new JSONArray();
+
+        long start = seq;
+        long slice = Finance.NewSlice();
+        long ret = Finance.GetChatData(sdk, seq, limit, "", "",timeout,slice);
+        if (ret != 0) {
+            System.out.println("获取存档消息 " + ret);
+        } else {
+            String content = Finance.GetContentFromSlice(slice);
+            JSONObject result = JSONObject.parseObject(content);
+            if(result.containsKey("errcode") && result.getInteger("errcode") == 0){
+                JSONArray msgArray = result.getJSONArray("chatdata");
+                if (null != msgArray && msgArray.size() > 0) {
+                    long newSlice = Finance.NewSlice();
+                    for(int i = 0; i < msgArray.size(); i++){
+                        try {
+                            ChatModel cem = JSONObject.parseObject(msgArray.getString(i), ChatModel.class);
+                            start = Math.max(cem.getSeq(), start);
+                            if (cem.getPublickey_ver() == 2) {
+                                String key = config.decodePrivateData(cem.getEncrypt_random_key(), cem.getPublickey_ver());
+                                if (key != null && key.trim().length() > 0) {
+                                    int ri = Finance.DecryptData(sdk, key, cem.getEncrypt_chat_msg(), newSlice);
+                                    if (ri == 0) {
+                                        String msg = Finance.GetContentFromSlice(newSlice);
+                                        ChatMsg chatMsg = ChatMsg.fromString(msg);
+                                        if (chatMsg != null) {
+                                            chatMsg.setSeq(cem.getSeq());
+                                            list.add(chatMsg);
+                                        }
+                                    }
+                                }
+                            }
+                        }catch (Exception ex){
+                            ex.printStackTrace();
+                        }
+                    }
+                }
+            }
+        }
+        Finance.FreeSlice(slice);
+        return list.size() == limit ? true:false;
+    }
+}
+
+
+public class WxConfig {
+    String corpId = "";
+    String secret = "";
+    String priKeyss = "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDv2v5OjSFwAXCf\n" +
+            "sr6bKBnjCugiyziydC/QKCjSxhhqyRaExojqzZesKYB9NakxPztmM3pe/8T44sgh\n" +
+            "NXVtr8IsEUYPs0SltTZbSiHQftRy4EGv7jsaO1+YW55q3K9KJhxHY6FNUPB3c/1m\n" +
+            "051g1vA9K99KIoxuq7Wo0uBwn12cTxEQGbrBOe2ztfc+cTM7ykGkJxoTNgm758B2\n" +
+            "ueilqM0gZaE994Jd1ugZ+xNsLlwYu/p13lO+mZ3d3FBEAeKxAvNsTixeDIq0D5cz\n" +
+            "Ku89owFhzCIgCXkF+7X2xs5JS5CTKZD4yNwJCu/sYUDesWQvx58xG+dkjKJ3bBr2\n" +
+            "FGZ5gkppAgMBAAECggEANyK3HKVyj0W1dvBmwlHYiYljTUQ710HAD/B7WeAxkrKA\n" +
+            "26qrpJX4DJpJr/6a0vg/FkI1GgtfYvr2mDOqt7kUQH8EBO3nlNPwF9IVrdDJ01Jb\n" +
+            "py5zJZeKZQKCivwJy1ixXXO4i4ZUkJD4Kh/w6GbgOJ+SJ3+DmpkcHB/Fef4YTaqp\n" +
+            "R9l2uHH+aW47OeOoa/4DMI5n8amjZR7hCFCGnTHYMmY8IBGZ3kMbu39tT2WKjhni\n" +
+            "u8zcSpHskecW9FP4Q/o3CGgshwNlCGkq49aJosNgY124d9MTj+hRSQKY45HcS1hY\n" +
+            "iwnQPsLdJVgC0IDO9yCX4vqRSF1PQw8fcpnSOh1IAQKBgQD8AdXdWfgyHGFAnQKh\n" +
+            "CZZ6dSWPdEsrZMrxb5Z6vkiO9NS3Ac94KikhXYlnkDStJ+qfRr/qzBWfvmbT1Ukj\n" +
+            "xpgfI/8eY6n7vg6YU6gUOiYs01K/VxxN3b9k3wzOmu9yXIqB063Maih9NkXFAMmc\n" +
+            "aqOfb0v2zT6oMd8bbtoH+VBVAQKBgQDzp96To12wUUqtJXyaHuy+fZJY+6N2e6SU\n" +
+            "leeDWpBcRxZi5beu2YOiOYtEHqztOeoRHeUOkjIIbHFxs+snbHlKRYBelv58VwOB\n" +
+            "ZX5yPxlVYpROP36a+LmjGHE4JWZ4FgSPeEN3M0zCELYm14oW/iAxP4CCi5pz3hc1\n" +
+            "+oVpzV5taQKBgA2DI658tnwpXWWThaKQ2wqx4VOxzp4DB4aujwkBzu4rXoR5imBN\n" +
+            "EmuBkm6FIu3t5/ymVIAIdVhdYzIUi5lpepqg2XsNqP2gkTPFuIttGsLoidVMnG3o\n" +
+            "Z+zGsO8bC5+8KokPipAdWRJtqIwJoMXMSf2wgAg5tRRbqDTWWsZ2rcIBAoGACgnE\n" +
+            "dbipR3ZR6Ug+FetoPYDW4qubVGpLoYN7gkHc6LBVD8X/B0kWzzwnrKrG3Q8hwYrF\n" +
+            "wQ/s18P/+Hs9GOazKIgsfbkiyuSa1F3mE7bdyFLDYWXkRWYx37JGF9YSnqfpkC+Y\n" +
+            "N/T5GJWvq3H90mytztma5cXymwtvUV382RsI5OECgYEA5zN+BqXDmJyAIfcqcu53\n" +
+            "Lzlita8ezk1dK2/VZNOIvP7GGNqiUCnEC0KH+3AJykzd7hUKazVlmGIGApWdWxFo\n" +
+            "TabCyEkVHvL4QJJWt+wYOxbaSM3kWc8jYBJv5auT5rbeqa2eFX6vacsJtVCjwXYi\n" +
+            "gFSWNVKbmLCCbR8b2pjUqKA=";
+
+    String priKey = "MIICXgIBAAKBgQCmRhwT/mtD0JCSTwK+a22H5raQeeniyYQSqBV0f8qppgeXH/As\n" +
+            "p11qZURiOev8L6sseKEyT4TEBT+1s9ZaAnaFqb02Vm0pqQ3qHjonIruSjHdNkrW5\n" +
+            "9+A7u0zeqnGcnG20QzsZAICr207/GQXWM8bY0we2dHLEQ2ObRD0p/Hs3twIDAQAB\n" +
+            "AoGAF+7RKCWU7fLCzx8VSjBaAyziYU2oVyQ3YPIVqH+jvaMwG4DAMsU3rSf8swDF\n" +
+            "prZ7y8+52sKBsy9S5MYJF/VGdtPdDzck0rhctr3ca3BXNTX3p2huHAAi1uUVpQ1O\n" +
+            "SIIyYsboZYFMAULeHbX9CUIaqDaY6N+/AuuTC2hH4YAFSYUCQQD8Nt/C/UWJxTf0\n" +
+            "EkAhO9qpr1+HGuSGR1bS0LeAHatMlORsNONhnb9IXwVBVvc6iyfleej/fqUzVE+m\n" +
+            "tMcNHQ9LAkEAqMUDDWU/XqK00VLG+cGIIsSHAzWmiZ+dVT2XTC2n0UNjoIjv3Gd0\n" +
+            "9yYcNK8PDL0lTbg5mmz2sAuh18zFmCx5xQJBAKXxtOgmnEo5aMc9+tPi/cwHh2Lt\n" +
+            "Xs66wXWTviidXMfWbzSC19iyYdjMLDkBb0klpepme9cfDLLpFj8pUo5eQGECQQCf\n" +
+            "A8mldHEpxJoj5B+QMVYIlC01y/YXE6oVJ4wHfbjyBdG37244t83QFDtdNFg0w36D\n" +
+            "ZQH5S5N/OeaKwuimQbmVAkEA8GYyGP0wUVpQ6s8hnXYXRbf/TB2jXSaB/hJ4EQ5b\n" +
+            "RC6/k12URx5j4yL2E3mpXlgQRC2n1NEJeOJPI+kky7p1wg==";
+    int encver = 2;
+
+    public WxConfig() {
+    }
+    public String getCorpId() {
+        return corpId;
+    }
+
+    public void setCorpId(String corpId) {
+        this.corpId = corpId;
+    }
+
+    public String getSecret() {
+        return secret;
+    }
+
+    public void setSecret(String secret) {
+        this.secret = secret;
+    }
+
+    public String getPriKey() {
+        return priKey;
+    }
+
+    public void setPriKey(String priKey) {
+        this.priKey = priKey;
+    }
+
+    public int getEncver() {
+        return encver;
+    }
+
+    public void setEncver(int encver) {
+        this.encver = encver;
+    }
+
+    public String decodePrivateData(String encryptedData, int env){
+        try {
+            return RSAUtil.decryptByPriKey(encryptedData, this.priKeyss);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println(e.getMessage());
+        }
+        return "";
+    }
+}
+
+
+public class ChatModel {
+
+    int publickey_ver;
+    String encrypt_chat_msg;
+    String msgid;
+    String encrypt_random_key;
+    long seq;
+
+    public ChatModel() {
+    }
+
+    public int getPublickey_ver() {
+        return publickey_ver;
+    }
+
+    public void setPublickey_ver(int publickey_ver) {
+        this.publickey_ver = publickey_ver;
+    }
+
+    public String getEncrypt_chat_msg() {
+        return encrypt_chat_msg;
+    }
+
+    public void setEncrypt_chat_msg(String encrypt_chat_msg) {
+        this.encrypt_chat_msg = encrypt_chat_msg;
+    }
+
+    public String getMsgid() {
+        return msgid;
+    }
+
+    public void setMsgid(String msgid) {
+        this.msgid = msgid;
+    }
+
+    public String getEncrypt_random_key() {
+        return encrypt_random_key;
+    }
+
+    public void setEncrypt_random_key(String encrypt_random_key) {
+        this.encrypt_random_key = encrypt_random_key;
+    }
+
+    public long getSeq() {
+        return seq;
+    }
+
+    public void setSeq(long seq) {
+        this.seq = seq;
+    }
+}
+
+
+
+public class ChatMsg {
+    String msgId;
+    String action;
+    String from;
+    List<String> toList;
+    String roomId;
+    long msgTime;
+    String msgType;
+    long seq;
+    String content;
+    private ChatMsg(){
+    }
+    public void setSeq(long seq){
+        this.seq = seq;
+    }
+    public static ChatMsg fromString(String ct){
+        if(ct != null && !"".equals( ct.trim().length())){
+            JSONObject json = JSONObject.parseObject(ct);
+            if(json != null && json.containsKey("msgid")){
+                ChatMsg chatMsg = new ChatMsg();
+                chatMsg.msgId = json.containsKey("msgid") ? json.getString("msgid") : "";
+                chatMsg.action = json.containsKey("action") ? json.getString("action") : "";
+                chatMsg.from = json.containsKey("from") ? json.getString("from") : "";
+                if(json.containsKey("tolist")){
+                    List<String> toarray = new ArrayList<>();
+                    json.getJSONArray("tolist").forEach(x-> toarray.add(x.toString()));
+                    chatMsg.toList = toarray;
+                }
+
+                chatMsg.roomId = json.containsKey("roomid") ? json.getString("roomid") : "";
+                chatMsg.msgTime = json.containsKey("msgTime") ? json.getLong("msgTime") : 0L;
+                chatMsg.msgType = json.containsKey("msgType") ? json.getString("msgType") : "";
+                chatMsg.content = ct;
+                return chatMsg;
+            }
+        }
+        return null;
+    }
+}
+
+
